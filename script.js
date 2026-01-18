@@ -462,29 +462,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createThumb(src, name, persisted){
       const item = document.createElement('div'); item.className = 'cert-item';
-      const thumb = document.createElement('img'); thumb.className = 'cert-thumb'; thumb.src = src; thumb.alt = name || 'Certificate';
-      thumb.setAttribute('tabindex','0'); thumb.setAttribute('role','button'); thumb.setAttribute('aria-label','Open certificate: ' + (name || 'certificate'));
-      thumb.addEventListener('click', ()=> openOverlay(src, name));
-      thumb.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openOverlay(src, name); } });
 
-      if (persisted){
-        const remove = document.createElement('button'); remove.className = 'cert-remove'; remove.type = 'button'; remove.setAttribute('aria-label','Remove certificate'); remove.textContent = '✕';
-        remove.addEventListener('click', async ()=>{
-          // require developer authorization before removal
-          const allowed = await requireDeveloperAuth();
-          if (!allowed) return alert('Removal requires developer authorization.');
-          // remove from DOM and storage
-          const saved = getSavedCerts();
-          const idx = saved.findIndex(s => s.name === name && s.data === src);
-          if (idx >= 0){ saved.splice(idx,1); saveCerts(saved); }
-          item.remove();
-        });
-        item.appendChild(remove);
-        const caption = document.createElement('div'); caption.className = 'caption'; caption.textContent = name; item.appendChild(caption);
+      const thumb = document.createElement('img'); thumb.className = 'cert-thumb'; thumb.alt = name || 'Certificate';
+      thumb.setAttribute('tabindex','0'); thumb.setAttribute('role','button'); thumb.setAttribute('aria-label','Open certificate: ' + (name || 'certificate'));
+
+      // Build candidate paths to try for image loading
+      function makeCandidates(s){
+        const out = [];
+        if (!s) return out;
+        out.push(s);
+        if (!/^[a-zA-Z0-9]+:\/\//.test(s)){
+          const base = s.replace(/^\.\//,'');
+          out.push('./' + base);
+          out.push(base);
+          out.push('assets/' + base);
+          out.push(base.replace(/^assets\//,''));
+        }
+        return Array.from(new Set(out));
       }
 
-      item.appendChild(thumb);
-      gallery.appendChild(item);
+      const candidates = makeCandidates(src);
+
+      // Try to load each candidate in order; if none load, show a placeholder card so the certificate is still visible.
+      function tryLoad(list){
+        if (!Array.isArray(list) || !list.length){
+          // fallback placeholder when no image could be loaded
+          const placeholder = document.createElement('div');
+          placeholder.className = 'cert-placeholder';
+          placeholder.setAttribute('role','button');
+          placeholder.setAttribute('tabindex','0');
+          placeholder.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><svg width=48 height=48 viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7\" stroke=\"currentColor\" stroke-width=1.4 stroke-linecap=round stroke-linejoin=round></path><path d=\"M21 7l-9 6-9-6\" stroke=\"currentColor\" stroke-width=1.4 stroke-linecap=round stroke-linejoin=round></path></svg><div class=\"cert-name\">${name || 'Certificate'}</div><button class=\"btn view-cert\">View</button></div>`;
+          placeholder.addEventListener('click', ()=> openOverlay(src, name));
+          placeholder.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay(src, name); } });
+          item.appendChild(placeholder);
+          gallery.appendChild(item);
+          if (persisted){
+            // persisted items still get caption + remove control for parity with image items
+            const remove = document.createElement('button'); remove.className = 'cert-remove'; remove.type = 'button'; remove.setAttribute('aria-label','Remove certificate'); remove.textContent = '✕';
+            remove.addEventListener('click', async ()=>{
+              const allowed = await requireDeveloperAuth();
+              if (!allowed) return alert('Removal requires developer authorization.');
+              const saved = getSavedCerts();
+              const idx = saved.findIndex(s => s.name === name && s.data === src);
+              if (idx >= 0){ saved.splice(idx,1); saveCerts(saved); }
+              item.remove();
+            });
+            item.appendChild(remove);
+            const caption = document.createElement('div'); caption.className = 'caption'; caption.textContent = name; item.appendChild(caption);
+          }
+          return;
+        }
+
+        const next = list.shift();
+        thumb.src = next;
+
+        function onLoad(){
+          thumb.removeEventListener('load', onLoad);
+          thumb.removeEventListener('error', onError);
+          thumb.addEventListener('click', ()=> openOverlay(thumb.src, name));
+          thumb.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openOverlay(thumb.src, name); } });
+          if (persisted){
+            const remove = document.createElement('button'); remove.className = 'cert-remove'; remove.type = 'button'; remove.setAttribute('aria-label','Remove certificate'); remove.textContent = '✕';
+            remove.addEventListener('click', async ()=>{
+              const allowed = await requireDeveloperAuth();
+              if (!allowed) return alert('Removal requires developer authorization.');
+              const saved = getSavedCerts();
+              const idx = saved.findIndex(s => s.name === name && s.data === src);
+              if (idx >= 0){ saved.splice(idx,1); saveCerts(saved); }
+              item.remove();
+            });
+            item.appendChild(remove);
+            const caption = document.createElement('div'); caption.className = 'caption'; caption.textContent = name; item.appendChild(caption);
+          }
+
+          item.appendChild(thumb);
+          gallery.appendChild(item);
+        }
+
+        function onError(){
+          thumb.removeEventListener('load', onLoad);
+          thumb.removeEventListener('error', onError);
+          tryLoad(list);
+        }
+
+        thumb.addEventListener('load', onLoad);
+        thumb.addEventListener('error', onError);
+      }
+
+      tryLoad(candidates);
       return item;
     }
 
@@ -606,6 +671,20 @@ document.addEventListener('DOMContentLoaded', () => {
     gallery.addEventListener('dragover', (e)=>{ e.preventDefault(); gallery.classList.add('dragover'); });
     gallery.addEventListener('dragleave', (e)=>{ gallery.classList.remove('dragover'); });
     gallery.addEventListener('drop', async (e)=>{ e.preventDefault(); gallery.classList.remove('dragover'); const allowed = devUnlocked || await requireDeveloperAuth(); if (!allowed){ return alert('Adding certificates requires developer authorization.'); } handleFiles(e.dataTransfer.files || []); });
+
+    // load shared certificates (repo/global) so all visitors see them
+    (function loadSharedCerts(){
+      fetch('certificates.json', { cache: 'no-store' })
+        .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); })
+        .then(list => {
+          if (!Array.isArray(list)) return;
+          list.forEach(item => {
+            try{ createThumb(item.src || item.url || item.data, item.name || item.title || 'Certificate', false); }
+            catch(e){ console.error('Failed to create shared cert', e); }
+          });
+        })
+        .catch(err => { console.info('No shared certificates loaded:', err.message); });
+    })();
 
     // load saved certificates from localStorage
     (function restoreSaved(){
