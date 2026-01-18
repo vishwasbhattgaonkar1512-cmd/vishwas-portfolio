@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Certificates & Achievements — Vishwas Bhattgaonkar</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Poppins:wght@600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Page-local access control styles (add-on only, reversible) */
+    .cert-gallery{opacity:0;max-height:0;overflow:hidden;transform:translateY(-8px);transition:opacity .36s ease,max-height .45s ease,transform .36s ease}
+    .cert-gallery.certs-visible{opacity:1;max-height:2000px;transform:translateY(0)}
+    .cert-locked-placeholder{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:12px}
+    .view-certs-btn{padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}
+    .cert-access-info{font-size:13px;color:var(--muted);margin-top:8px}
+    .cert-password-badge{display:inline-block;margin-top:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);padding:6px 10px;border-radius:8px;color:var(--muted);font-weight:700}
+    .cert-password-badge strong{background:linear-gradient(90deg,var(--accent-blue),var(--accent-pink));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:900}
+    /* Simple lightbox styles (add-on only) */
+    .simple-lightbox{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,6,23,0.88);z-index:200000;opacity:0;pointer-events:none;transition:opacity .24s ease}
+    .simple-lightbox.open{opacity:1;pointer-events:auto}
+    .slb-inner{max-width:calc(100vw - 32px);max-height:calc(100vh - 32px);overflow:hidden}
+    .slb-img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,0.6);transform:scale(.96);transition:transform .26s cubic-bezier(.2,.9,.2,1)}
+    .simple-lightbox.open .slb-img{transform:scale(1)}
+    .slb-close{position:fixed;top:18px;right:18px;background:rgba(0,0,0,0.45);color:#fff;border:0;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:18px;z-index:200001}
+    @media (max-width:480px){ .slb-close{top:12px;right:12px;padding:6px 8px} }
+  </style>
+</head>
+<body>
+  <main class="container" style="padding-top:36px;padding-bottom:36px;">
+    <a href="index.html" style="display:inline-block;margin-bottom:18px;color:var(--muted);text-decoration:none;">← Back to portfolio</a>
+
+    <section id="certifications" class="card reveal">
+      <h2>Certifications & Achievements</h2>
+      <div class="cert-password-badge" aria-hidden="false">Access password: <strong>ViewCerts@2026</strong></div>
+      <p class="muted">Click a certificate to view larger.</p>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;margin-bottom:8px;">
+        <button id="add-certs-btn" class="btn">Add Certificates</button>
+        <button id="clear-certs-btn" class="btn" title="Remove all saved certificates">Clear Saved</button>
+        <button id="dev-mode-btn" class="btn" title="Developer controls">Developer</button>
+        <button id="reset-certs-btn" class="btn" title="Reset certificates access">Reset Certificates Access</button>
+        <small class="muted">You can also drag & drop images onto the gallery below.</small>
+        <input id="cert-input" type="file" accept="image/*" multiple hidden>
+      </div>
+      <!-- Add-on: access control placeholder (non-destructive) -->
+      <div id="cert-lock" class="cert-locked-placeholder" aria-hidden="true">
+        <div>Certificates are protected — authorized access required.</div>
+        <div>
+          <button id="view-certs-btn" class="view-certs-btn btn">View Certificates</button>
+        </div>
+      </div>
+      <div class="cert-gallery grid-4" aria-live="polite" aria-label="Certifications gallery">
+        <!-- Static thumbnails for all certificates (so page shows them immediately) -->
+        <div class="cert-item"><img class="cert-thumb" src="certificate1.jpeg" alt="Certificate 1"><div class="caption">Certificate 1</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate2.jpeg" alt="Certificate 2"><div class="caption">Certificate 2</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate3.jpeg" alt="Certificate 3"><div class="caption">Certificate 3</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate4.jpeg" alt="Certificate 4"><div class="caption">Certificate 4</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate 5.jpeg" alt="Certificate 5"><div class="caption">Certificate 5</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate6.jpeg" alt="Certificate 6"><div class="caption">Certificate 6</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate7.jpeg" alt="Certificate 7"><div class="caption">Certificate 7</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate8.jpeg" alt="Certificate 8"><div class="caption">Certificate 8</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate9.jpeg" alt="Certificate 9"><div class="caption">Certificate 9</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate10.jpeg" alt="Certificate 10"><div class="caption">Certificate 10</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate11.jpeg" alt="Certificate 11"><div class="caption">Certificate 11</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate13.jpeg" alt="Certificate 13"><div class="caption">Certificate 13</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate14.jpeg" alt="Certificate 14"><div class="caption">Certificate 14</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate15.jpeg" alt="Certificate 15"><div class="caption">Certificate 15</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate16.jpeg" alt="Certificate 16"><div class="caption">Certificate 16</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate17.jpeg" alt="Certificate 17"><div class="caption">Certificate 17</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate18.jpeg" alt="Certificate 18"><div class="caption">Certificate 18</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate19.jpeg" alt="Certificate 19"><div class="caption">Certificate 19</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate20.jpeg" alt="Certificate 20"><div class="caption">Certificate 20</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate21.jpeg" alt="Certificate 21"><div class="caption">Certificate 21</div></div>
+        <div class="cert-item"><img class="cert-thumb" src="certificate22.jpeg" alt="Certificate 22"><div class="caption">Certificate 22</div></div>
+      </div>
+    </section>
+
+    <footer style="margin-top:28px;color:var(--muted);font-size:13px">© 2026 Vishwas Bhattgaonkar — <a href="index.html">Portfolio</a></footer>
+  </main>
+
+  <script id="cert-data" type="application/json">
+[
+  { "name": "Vishwas Photo (root)", "src": "vishwas.jpeg" },
+  { "name": "Vishwas Photo (assets)", "src": "assets/vishwas.jpeg" },
+  { "name": "Certificate 1", "src": "certificate1.jpeg" },
+  { "name": "Certificate 2", "src": "certificate2.jpeg" },
+  { "name": "Certificate 3", "src": "certificate3.jpeg" },
+  { "name": "Certificate 4", "src": "certificate4.jpeg" },
+  { "name": "Certificate 5", "src": "certificate 5.jpeg" },
+  { "name": "Certificate 6", "src": "certificate6.jpeg" },
+  { "name": "Certificate 7", "src": "certificate7.jpeg" },
+  { "name": "Certificate 8", "src": "certificate8.jpeg" },
+  { "name": "Certificate 9", "src": "certificate9.jpeg" },
+  { "name": "Certificate 10", "src": "certificate10.jpeg" },
+  { "name": "Certificate 11", "src": "certificate11.jpeg" },
+  { "name": "Certificate 13", "src": "certificate13.jpeg" },
+  { "name": "Certificate 14", "src": "certificate14.jpeg" },
+  { "name": "Certificate 15", "src": "certificate15.jpeg" },
+  { "name": "Certificate 16", "src": "certificate16.jpeg" },
+  { "name": "Certificate 17", "src": "certificate17.jpeg" },
+  { "name": "Certificate 18", "src": "certificate18.jpeg" },
+  { "name": "Certificate 19", "src": "certificate19.jpeg" },
+  { "name": "Certificate 20", "src": "certificate20.jpeg" },
+  { "name": "Certificate 21", "src": "certificate21.jpeg" },
+  { "name": "Certificate 22", "src": "certificate22.jpeg" },
+  { "name": "Certificate 12", "src": "certificate12.jpeg" }
+]
+  </script>
+  <script>
+    (function(){
+      // Page-local, minimal access control (add-on only)
+      const ACCESS_PASSWORD = 'ViewCerts@2026';
+      const gallery = document.querySelector('.cert-gallery');
+      const lockEl = document.getElementById('cert-lock');
+      const btn = document.getElementById('view-certs-btn');
+      const resetBtn = document.getElementById('reset-certs-btn');
+
+      function isLocalhost(){ const h = location.hostname; return h === 'localhost' || h === '127.0.0.1'; }
+      function isLocked(){ return sessionStorage.getItem('portfolio.certs.locked') === 'true'; }
+      function hasAccess(){ return (!isLocked() && isLocalhost()) || sessionStorage.getItem('portfolio.certs.access') === 'granted'; }
+      function grant(){ if (!gallery) return; try{ sessionStorage.removeItem('portfolio.certs.locked'); sessionStorage.setItem('portfolio.certs.access','granted'); }catch(e){} gallery.classList.add('certs-visible'); if (lockEl) lockEl.style.display = 'none'; }
+      function revoke(){ try{ sessionStorage.removeItem('portfolio.certs.access'); sessionStorage.setItem('portfolio.certs.locked','true'); }catch(e){} if (gallery) gallery.classList.remove('certs-visible'); if (lockEl) lockEl.style.display = 'flex'; }
+
+      if (!gallery) return;
+      // initial state
+      if (hasAccess()){ grant(); } else { if (lockEl) lockEl.style.display = 'flex'; gallery.classList.remove('certs-visible'); }
+
+      // View button handler
+      btn?.addEventListener('click', function(){
+        if (isLocalhost() && !isLocked()){ grant(); return; }
+        const attempt = prompt('Enter access password to view certificates:');
+        if (attempt === null) return; // cancelled
+        if (attempt === ACCESS_PASSWORD){ grant(); } else { alert('Incorrect password.'); }
+      });
+
+      // Reset button: clear access and set a locked flag so localhost won't auto-show until user unlocks
+      resetBtn?.addEventListener('click', function(){
+        if (!confirm('Reset certificates access for this session?')) return;
+        revoke();
+        alert('Certificates access reset. To view again, click "View Certificates" and enter the password.');
+      });
+    })();
+  </script>
+  <script src="script.js"></script>
+  <script>
+    // Simple, self-contained lightbox enhancement (add-on only)
+    (function(){
+      function buildLightbox(){
+        const overlay = document.createElement('div'); overlay.className = 'simple-lightbox'; overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+        const inner = document.createElement('div'); inner.className = 'slb-inner';
+        const img = document.createElement('img'); img.className = 'slb-img'; img.alt = '';
+        inner.appendChild(img);
+        const close = document.createElement('button'); close.className = 'slb-close'; close.type = 'button'; close.setAttribute('aria-label','Close full view'); close.textContent = '✕';
+        overlay.appendChild(inner); overlay.appendChild(close);
+        document.body.appendChild(overlay);
+        return { overlay, inner, img, close };
+      }
+
+      const lb = buildLightbox();
+      let lastFocused = null; let prevOverflow = '';
+
+      function open(src, alt, trigger){
+        if (!lb) return; lastFocused = trigger || document.activeElement;
+        lb.img.src = src; lb.img.alt = alt || '';
+        prevOverflow = document.body.style.overflow || '';
+        document.body.style.overflow = 'hidden';
+        lb.overlay.classList.add('open');
+        lb.close.focus();
+      }
+
+      function close(){
+        if (!lb) return; lb.overlay.classList.remove('open');
+        document.body.style.overflow = prevOverflow;
+        // clear src after a tick to avoid keeping large images in memory
+        setTimeout(()=>{ lb.img.src = ''; }, 200);
+        try{ if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus(); }catch(e){}
+      }
+
+      // Close on background click (outside inner)
+      lb.overlay.addEventListener('click', function(e){ if (e.target === lb.overlay) close(); });
+      lb.close.addEventListener('click', close);
+
+      // ESC key
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && lb.overlay.classList.contains('open')) close(); });
+
+      // Delegate clicks on thumbnails
+      document.addEventListener('click', function(e){
+        const t = e.target.closest && e.target.closest('img.cert-thumb');
+        if (!t) return;
+        // If the access layer has hidden gallery, ignore
+        const gallery = t.closest('.cert-gallery');
+        if (!gallery || gallery.classList.contains('certs-visible') || gallery.closest('#certifications') == null) {
+          // If gallery is visible or embedding page, open
+        } else {
+          // gallery hidden; do nothing
+          return;
+        }
+        e.preventDefault();
+        const src = t.currentSrc || t.src;
+        const alt = t.alt || t.closest('.cert-item')?.querySelector('.caption')?.textContent || '';
+        open(src, alt, t);
+      });
+    })();
+  </script>
+</body>
+</html>
