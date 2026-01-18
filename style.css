@@ -38,7 +38,7 @@ body{
 .layout{display:flex;min-height:100vh}
 .panel-left{width:320px;flex-shrink:0;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:48px 28px;border-right:1px solid rgba(255,255,255,0.02);display:flex;align-items:flex-start}
 .left-inner{position:sticky;top:32px;width:100%}
-.panel-right{flex:1;padding:48px 36px}
+.panel-right{flex:1;padding:48px 36px;padding-bottom:420px}
 
 .profile-frame{position:relative;width:220px;margin-bottom:20px}
 .profile-img{width:220px;height:220px;border-radius:18px;object-fit:cover;display:block;transform:translateZ(0);transition:transform .45s ease,box-shadow .45s ease}
@@ -235,22 +235,77 @@ a:focus{outline:2px dashed rgba(79,179,255,0.18);outline-offset:4px}
 .contact-highlight[title]{outline:2px solid rgba(255,255,255,0.02)}
 
 /* Certifications gallery */
-.cert-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px}
+.cert-gallery{
+  display:flex;
+  gap:12px;
+  margin-top:12px;
+  overflow-x:auto;
+  padding:8px 6px 12px 6px;
+  -webkit-overflow-scrolling:touch;
+  scroll-snap-type:x mandatory;
+}
+.cert-gallery::-webkit-scrollbar{height:10px}
+.cert-gallery::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.04);border-radius:8px}
 .cert-thumb{width:100%;height:160px;object-fit:cover;border-radius:10px;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease;border:1px solid rgba(255,255,255,0.03)}
 .cert-thumb:hover{transform:translateY(-6px);box-shadow:0 30px 70px rgba(2,6,23,0.6)}
 
 /* lightbox overlay for certificate preview */
-.cert-overlay{position:fixed;inset:0;background:rgba(2,6,23,0.88);display:flex;align-items:center;justify-content:center;z-index:120;padding:20px}
-.cert-overlay img{max-width:92%;max-height:92%;border-radius:8px;box-shadow:0 30px 100px rgba(0,0,0,0.8)}
-.cert-overlay .cert-close{position:absolute;top:18px;right:20px;background:transparent;border:0;color:#fff;font-size:20px;cursor:pointer;padding:10px;border-radius:8px}
-.cert-overlay .caption{margin-top:10px;color:#dfefff;font-size:13px;text-align:center}
+.cert-overlay{position:fixed;inset:0;background:rgba(2,6,23,0.92);display:flex;align-items:center;justify-content:center;z-index:99999;padding:0}
+
+/* Prevent footer overlapping content on short viewports by ensuring the main panel
+   leaves space equal to approximate footer height. Adjust for small screens. */
+@media (max-width:980px){
+  .panel-right{padding-bottom:260px}
+}
+
+/* Fallback: ensure the overall layout reserves space under the main content
+   so long pages or tall footer never overlap interactive sections. */
+.layout{padding-bottom:0;}
+body{padding-bottom:0}
+@media (min-height:720px){
+  .layout{padding-bottom:420px}
+}
+.cert-overlay img{
+  /* center inside the overlay and constrain to viewport while preserving aspect */
+  position:relative;
+  display:block;
+  max-width:calc(100vw - 32px);
+  max-height:calc(100vh - 32px);
+  width:auto;
+  height:auto;
+  margin:0 auto;
+  object-fit:contain;
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
+}
+.cert-overlay .cert-close{position:absolute;top:12px;right:12px;background:transparent;border:0;color:#fff;font-size:24px;cursor:pointer;padding:10px;border-radius:8px;z-index:100001}
+.cert-overlay .caption{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;color:#dfefff;font-size:14px;text-align:center;background:rgba(0,0,0,0.45);padding:8px 12px;border-radius:8px;z-index:100000}
+
+/* Lightbox controls */
+.lightbox-controls{position:fixed;top:12px;right:12px;display:flex;gap:8px;z-index:100002}
+.lightbox-controls button{background:rgba(0,0,0,0.45);border:0;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:700}
+.lightbox-nav{position:fixed;top:50%;transform:translateY(-50%);z-index:100002;display:flex;align-items:center}
+.lightbox-nav.btn-left{left:8px}
+.lightbox-nav.btn-right{right:8px}
+.lightbox-nav button{background:rgba(0,0,0,0.35);border:0;color:#fff;padding:12px 14px;border-radius:999px;cursor:pointer;font-size:18px}
+.lightbox-download{display:inline-block;text-decoration:none;color:#041226;background:linear-gradient(90deg,var(--accent-blue),var(--accent-green));padding:8px 10px;border-radius:8px;font-weight:800}
+
+/* When zoomed, allow cursor to indicate dragging */
+.cert-overlay.zooming img{cursor:grab}
+.cert-overlay.zooming img:active{cursor:grabbing}
+
+/* Placeholder for certificates when images are not available */
+.cert-placeholder{display:flex;align-items:center;justify-content:center;height:160px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.006));border:1px solid rgba(255,255,255,0.03);color:var(--muted);padding:12px;text-align:center;font-weight:700}
+.cert-placeholder svg{opacity:0.9;color:var(--muted)}
+.cert-placeholder .cert-name{font-size:13px;color:#eaf6ff;margin-top:6px}
+.cert-placeholder .view-cert{margin-top:6px;padding:8px 10px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent-blue),var(--accent-green));color:#041226;font-weight:800;cursor:pointer}
 
 /* dragover hint */
 .cert-gallery.dragover{outline:3px dashed rgba(79,179,255,0.14);outline-offset:6px}
 
 /* persisted cert item wrapper + remove control */
-.cert-item{position:relative;border-radius:10px;overflow:hidden}
-.cert-item img{display:block}
+.cert-item{position:relative;border-radius:10px;overflow:hidden;flex:0 0 240px;scroll-snap-align:start}
+.cert-item img{display:block;width:100%;height:100%;object-fit:cover}
 .cert-remove{position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.5);border:0;color:#fff;padding:6px 8px;border-radius:8px;cursor:pointer;font-weight:700;opacity:0.9}
 .cert-remove:hover{transform:translateY(-2px);opacity:1}
 .cert-item .caption{position:absolute;left:8px;bottom:8px;background:linear-gradient(90deg,rgba(0,0,0,0.45),rgba(0,0,0,0.18));padding:6px 8px;border-radius:8px;color:#eaf6ff;font-size:12px}
@@ -317,14 +372,14 @@ a:focus{outline:2px dashed rgba(79,179,255,0.18);outline-offset:4px}
 /* Footer base */
 .site-footer.footer-ai{color:var(--text);font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Poppins', Arial;line-height:1.5}
 .footer-inner{
-  max-width:1200px;margin:48px auto;padding:32px;border-radius:18px;
+  max-width:1200px;margin:24px auto;padding:18px;border-radius:14px;
   background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008));
-  box-shadow:0 30px 80px rgba(3,9,22,0.7);
+  box-shadow:0 18px 46px rgba(3,9,22,0.6);
   border:1px solid var(--glass-border);
-  backdrop-filter: blur(10px) saturate(120%);
-  -webkit-backdrop-filter: blur(10px) saturate(120%);
-  display:flex;gap:28px;align-items:flex-start;
-  padding:36px;
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  display:flex;gap:20px;align-items:flex-start;
+  padding:20px;
 }
 
 /* Brand column */
@@ -361,6 +416,32 @@ a:focus{outline:2px dashed rgba(79,179,255,0.18);outline-offset:4px}
   .footer-grid{grid-template-columns:1fr;gap:18px}
   .brand{order:0}
   .quote-col{align-items:flex-start}
+}
+
+@media (max-width:640px){
+  .cert-item{flex:0 0 72%;}
+  .cert-thumb{height:140px}
+}
+
+/* Render a 4-column grid on the standalone certificates page (class `grid-4`).
+   This keeps the main in-page gallery horizontal while enabling a grid layout
+   for the dedicated page. */
+.cert-gallery.grid-4{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:12px;
+  overflow:visible;
+  padding:6px 0 0 0;
+}
+.cert-gallery.grid-4 .cert-item{flex:0 0 auto;scroll-snap-align:none}
+.cert-gallery.grid-4 .cert-thumb{width:100%;height:160px;object-fit:cover}
+
+@media (max-width:980px){
+  .cert-gallery.grid-4{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:640px){
+  .cert-gallery.grid-4{grid-template-columns:repeat(1,1fr)}
+  .cert-gallery.grid-4 .cert-thumb{height:160px}
 }
 
 /* Small accessibility & polish */
