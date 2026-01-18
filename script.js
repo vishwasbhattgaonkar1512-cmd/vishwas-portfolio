@@ -438,9 +438,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return isLocalhost() || sessionStorage.getItem('portfolio.certs.access') === 'granted';
     }
 
-    // Inject small, scoped CSS for smooth fade/slide reveal
+    // Inject small, scoped CSS for smooth fade/slide reveal and highlighted password badge
     const _s = document.createElement('style');
-    _s.textContent = `#tab-certifications .cert-locked-placeholder{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:12px}#tab-certifications .certs-hidden{opacity:0;max-height:0;transform:translateY(-8px);overflow:hidden;transition:opacity .36s ease,max-height .45s ease,transform .36s ease}#tab-certifications .certs-visible{opacity:1;max-height:2000px;transform:translateY(0);transition:opacity .36s ease,max-height .45s ease,transform .36s ease}#tab-certifications .view-certs-trigger{padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}`;
+    _s.textContent = `#tab-certifications .cert-locked-placeholder{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:12px}#tab-certifications .certs-hidden{opacity:0;max-height:0;transform:translateY(-8px);overflow:hidden;transition:opacity .36s ease,max-height .45s ease,transform .36s ease}#tab-certifications .certs-visible{opacity:1;max-height:2000px;transform:translateY(0);transition:opacity .36s ease,max-height .45s ease,transform .36s ease}#tab-certifications .view-certs-trigger{padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}#tab-certifications .cert-access-info{margin-top:10px;font-size:13px;color:var(--muted);font-weight:700;padding:8px;border-radius:8px;background:linear-gradient(90deg, rgba(79,179,255,0.04), rgba(255,90,168,0.04));border:1px solid rgba(255,90,168,0.12);display:inline-block}#tab-certifications .cert-access-info strong{background:rgba(255,90,168,0.12);padding:2px 8px;border-radius:6px;color:inherit}`;
     document.head.appendChild(_s);
 
     // If access not granted, hide the gallery and add a trigger
@@ -462,12 +462,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function showAccessInfo(){
           // display password below the gallery for convenience
-          if (panel.querySelector('.cert-access-info')) return;
-          const info = document.createElement('div'); info.className = 'cert-access-info';
-          info.style.marginTop = '10px'; info.style.fontSize = '12px'; info.style.color = 'var(--muted)';
-          info.textContent = 'Access password: ' + ACCESS_PASSWORD;
-          // insert after gallery
-          gallery.parentNode.insertBefore(info, gallery.nextSibling);
+          if (!panel.querySelector('.cert-access-info')){
+            const info = document.createElement('div'); info.className = 'cert-access-info';
+            info.innerHTML = `Access password: <strong>${ACCESS_PASSWORD}</strong>`;
+            gallery.parentNode.insertBefore(info, gallery.nextSibling);
+          }
+          // also show a small badge in the left highlights panel (if present)
+          const highlights = document.querySelector('.highlights');
+          if (highlights && !highlights.querySelector('.cert-access-info')){
+            const hi = document.createElement('div'); hi.className = 'cert-access-info';
+            hi.style.marginTop = '12px'; hi.innerHTML = `Certificates access: <strong>${ACCESS_PASSWORD}</strong>`;
+            highlights.appendChild(hi);
+          }
         }
 
         btn.addEventListener('click', ()=>{
