@@ -467,6 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
             info.innerHTML = `Access password: <strong>${ACCESS_PASSWORD}</strong>`;
             gallery.parentNode.insertBefore(info, gallery.nextSibling);
           }
+
           // also show a small badge in the left highlights panel (if present)
           const highlights = document.querySelector('.highlights');
           if (highlights && !highlights.querySelector('.cert-access-info')){
@@ -474,6 +475,16 @@ document.addEventListener('DOMContentLoaded', () => {
             hi.style.marginTop = '12px'; hi.innerHTML = `Certificates access: <strong>${ACCESS_PASSWORD}</strong>`;
             highlights.appendChild(hi);
           }
+
+          // also insert a highlighted badge into the Certifications tab header (if present)
+          try{
+            const header = panel.querySelector('h2');
+            if (header && !panel.querySelector('.cert-header-badge')){
+              const badge = document.createElement('div'); badge.className = 'cert-access-info cert-header-badge';
+              badge.style.display = 'inline-block'; badge.style.marginLeft = '12px'; badge.innerHTML = `<strong>${ACCESS_PASSWORD}</strong>`;
+              header.parentNode.insertBefore(badge, header.nextSibling);
+            }
+          }catch(e){/* ignore */}
         }
 
         btn.addEventListener('click', ()=>{
@@ -521,10 +532,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 
-  (function setupCertGallery(){
-    const panel = document.getElementById('tab-certifications');
-    if (!panel) return;
-    const gallery = panel.querySelector('.cert-gallery');
+    (function setupCertGallery(){
+    // Support both in-page tab (`tab-certifications`) and standalone page (`certifications`)
+    let panel = document.getElementById('tab-certifications') || document.getElementById('certifications');
+    if (!panel){
+      // Fallback: if there's a `.cert-gallery` on the page, use its nearest section/container
+      const galleryOnly = document.querySelector('.cert-gallery');
+      if (!galleryOnly) return;
+      panel = galleryOnly.closest('section,div') || galleryOnly.parentElement;
+    }
+    const gallery = panel.querySelector('.cert-gallery') || document.querySelector('.cert-gallery');
     if (!gallery) return;
 
     const addBtn = document.getElementById('add-certs-btn');
@@ -547,22 +564,129 @@ document.addEventListener('DOMContentLoaded', () => {
       const img = document.createElement('img'); img.alt = '';
       const close = document.createElement('button'); close.className = 'cert-close'; close.type = 'button'; close.setAttribute('aria-label','Close certificate preview'); close.textContent = '✕';
       const caption = document.createElement('div'); caption.className = 'caption';
+
+      // control bar (top-right)
+      const ctrl = document.createElement('div'); ctrl.className = 'lightbox-controls';
+      const btnZoomIn = document.createElement('button'); btnZoomIn.title = 'Zoom in'; btnZoomIn.textContent = '+';
+      const btnZoomOut = document.createElement('button'); btnZoomOut.title = 'Zoom out'; btnZoomOut.textContent = '−';
+      const btnFit = document.createElement('button'); btnFit.title = 'Toggle fit'; btnFit.textContent = 'Fit';
+      const downloadLink = document.createElement('a'); downloadLink.className = 'lightbox-download'; downloadLink.textContent = 'Download'; downloadLink.setAttribute('download','');
+      ctrl.appendChild(btnZoomIn); ctrl.appendChild(btnZoomOut); ctrl.appendChild(btnFit); ctrl.appendChild(downloadLink);
+
+      // left/right nav
+      const navLeftWrap = document.createElement('div'); navLeftWrap.className = 'lightbox-nav btn-left';
+      const navLeft = document.createElement('button'); navLeft.title = 'Previous'; navLeft.textContent = '‹'; navLeftWrap.appendChild(navLeft);
+      const navRightWrap = document.createElement('div'); navRightWrap.className = 'lightbox-nav btn-right';
+      const navRight = document.createElement('button'); navRight.title = 'Next'; navRight.textContent = '›'; navRightWrap.appendChild(navRight);
+
+      overlay.appendChild(ctrl);
+      overlay.appendChild(navLeftWrap);
+      overlay.appendChild(navRightWrap);
       overlay.appendChild(close); overlay.appendChild(img); overlay.appendChild(caption);
-      close.addEventListener('click', ()=> overlay.remove());
-      overlay.addEventListener('click', (e)=>{ if (e.target === overlay) overlay.remove(); });
-      document.addEventListener('keydown', function onKey(e){ if (e.key === 'Escape'){ overlay.remove(); document.removeEventListener('keydown', onKey); } });
+
+      // state for overlay interactions
+      let scale = 1; let originX = 0; let originY = 0; let translateX = 0; let translateY = 0; let isPanning = false; let startX=0, startY=0;
+
+      function applyTransform(){ img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`; }
+
+      function resetTransform(){ scale = 1; translateX = 0; translateY = 0; applyTransform(); overlay.classList.remove('zooming'); }
+
+      function removeOverlay(){
+        try{ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(e){}
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', onKey);
+        // cleanup pointer listeners
+        img.onpointerdown = null; img.onpointermove = null; img.onpointerup = null; img.onpointercancel = null;
+      }
+      function onKey(e){ if (e.key === 'Escape'){ removeOverlay(); } if (e.key === 'ArrowLeft'){ showRelative(-1); } if (e.key === 'ArrowRight'){ showRelative(1); } }
+
+      // pointer pan handlers
+      img.style.touchAction = 'none';
+      img.onpointerdown = function(e){ if (scale <= 1) return; isPanning = true; startX = e.clientX - translateX; startY = e.clientY - translateY; img.setPointerCapture(e.pointerId); overlay.classList.add('zooming'); };
+      img.onpointermove = function(e){ if (!isPanning) return; translateX = e.clientX - startX; translateY = e.clientY - startY; applyTransform(); };
+      img.onpointerup = function(e){ isPanning = false; try{ img.releasePointerCapture(e.pointerId); }catch(e){} };
+      img.onpointercancel = function(e){ isPanning = false; };
+
+      // control actions
+      btnZoomIn.addEventListener('click', ()=>{ scale = Math.min(4, scale + 0.25); applyTransform(); if (scale>1) overlay.classList.add('zooming'); });
+      btnZoomOut.addEventListener('click', ()=>{ scale = Math.max(1, scale - 0.25); if (scale===1) resetTransform(); else applyTransform(); });
+      btnFit.addEventListener('click', ()=>{ if (img.style.objectFit === 'contain'){ img.style.objectFit = 'cover'; btnFit.textContent = 'Fit'; } else { img.style.objectFit = 'contain'; btnFit.textContent = 'Crop'; } });
+
+      // navigation placeholders; functions defined later to access gallery items
+      navLeft.addEventListener('click', ()=> showRelative(-1));
+      navRight.addEventListener('click', ()=> showRelative(1));
+
+      close.addEventListener('click', removeOverlay);
+      overlay.addEventListener('click', (e)=>{ if (e.target === overlay) removeOverlay(); });
+      document.addEventListener('keydown', onKey);
+
+      // prevent background scrolling while lightbox is open
+      document.body.style.overflow = 'hidden';
       document.body.appendChild(overlay);
+      // expose some helpers to outer scope via dataset for later hookup
+      overlay._img = img; overlay._caption = caption; overlay._download = downloadLink; overlay._resetTransform = resetTransform;
       return overlay;
     }
 
     function openOverlay(src, alt){
       const overlay = makeOverlay();
-      const img = overlay.querySelector('img'); img.src = src; img.alt = alt || '';
-      const caption = overlay.querySelector('.caption'); caption.textContent = alt || '';
+      const img = overlay._img || overlay.querySelector('img');
+      const caption = overlay._caption || overlay.querySelector('.caption');
+      caption.textContent = alt || '';
+      // reset any previous pan/zoom state
+      if (overlay._resetTransform) overlay._resetTransform();
+      // prefer contain so full image is visible
+      img.style.objectFit = 'contain';
+      img.src = src;
+      img.alt = alt || '';
+
+      // build navigable items list from gallery images
+      const imgs = Array.from(gallery.querySelectorAll('img.cert-thumb'));
+      overlay._items = imgs.map(i => ({ src: i.currentSrc || i.src, alt: i.alt || i.closest('.cert-item')?.querySelector('.caption')?.textContent || '' }));
+      overlay._currentIndex = overlay._items.findIndex(it => it.src === (img.currentSrc || img.src) || it.alt === (alt||''));
+      if (overlay._currentIndex < 0) overlay._currentIndex = 0;
+
+      // wire download link
+      try{
+        const dl = overlay._download;
+        if (dl){ dl.href = src; const safeName = (alt||'certificate').replace(/[^a-z0-9\.\-]/gi,'_') + (src.includes('.') ? '' : '.jpg'); dl.setAttribute('download', safeName); }
+      }catch(e){/* ignore */}
+
       return overlay;
     }
 
+    // navigate relative to current overlay item
+    function showRelative(delta){
+      const overlay = document.querySelector('.cert-overlay');
+      if (!overlay || !overlay._items || !overlay._items.length) return;
+      let idx = (overlay._currentIndex || 0) + delta;
+      if (idx < 0) idx = overlay._items.length - 1;
+      if (idx >= overlay._items.length) idx = 0;
+      overlay._currentIndex = idx;
+      const cur = overlay._items[idx];
+      if (!cur) return;
+      const img = overlay._img || overlay.querySelector('img');
+      const caption = overlay._caption || overlay.querySelector('.caption');
+      if (overlay._resetTransform) overlay._resetTransform();
+      img.style.objectFit = 'cover';
+      img.src = cur.src;
+      caption.textContent = cur.alt || '';
+      try{ const dl = overlay._download; if (dl){ dl.href = cur.src; const safeName = (cur.alt||'certificate').replace(/[^a-z0-9\.\-]/gi,'_') + (cur.src.includes('.') ? '' : '.jpg'); dl.setAttribute('download', safeName); } }catch(e){}
+    }
+
     function createThumb(src, name, persisted){
+      // avoid creating duplicates if a static thumbnail for the same file/name already exists
+      try{
+        const basename = (src||'').toString().split('/').pop().toLowerCase().trim();
+        const existingImgs = Array.from(gallery.querySelectorAll('img.cert-thumb'));
+        for (const img of existingImgs){
+          const s = (img.getAttribute('src')||'').toString().split('/').pop().toLowerCase().trim();
+          if (s && basename && s === basename) return null;
+        }
+        const existingCaptions = Array.from(gallery.querySelectorAll('.cert-item .caption')).map(c=> (c.textContent||'').trim());
+        if (name && existingCaptions.includes(name)) return null;
+      }catch(e){ /* ignore duplicate-detection errors */ }
+
       const item = document.createElement('div'); item.className = 'cert-item';
 
       const thumb = document.createElement('img'); thumb.className = 'cert-thumb'; thumb.alt = name || 'Certificate';
@@ -776,16 +900,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // load shared certificates (repo/global) so all visitors see them
     (function loadSharedCerts(){
-      fetch('certificates.json', { cache: 'no-store' })
-        .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); })
-        .then(list => {
-          if (!Array.isArray(list)) return;
-          list.forEach(item => {
-            try{ createThumb(item.src || item.url || item.data, item.name || item.title || 'Certificate', false); }
-            catch(e){ console.error('Failed to create shared cert', e); }
-          });
-        })
-        .catch(err => { console.info('No shared certificates loaded:', err.message); });
+        // First, try inline JSON embedded in the page (works for file:// and static hosting)
+        try{
+          const el = document.getElementById('cert-data');
+          if (el && el.textContent.trim()){
+            const list = JSON.parse(el.textContent);
+            if (Array.isArray(list)){
+              list.forEach(item => { try{ createThumb(item.src || item.url || item.data, item.name || item.title || 'Certificate', false); }catch(e){ console.error('Failed to create shared cert', e); } });
+              return;
+            }
+          }
+        }catch(e){ console.warn('Inline cert data parse failed', e); }
+
+        // Fallback to fetching certificates.json (works on hosted sites)
+        fetch('certificates.json', { cache: 'no-store' })
+          .then(r => { if (!r.ok) throw new Error('Not found'); return r.json(); })
+          .then(list => {
+            if (!Array.isArray(list)) return;
+            list.forEach(item => {
+              try{ createThumb(item.src || item.url || item.data, item.name || item.title || 'Certificate', false); }
+              catch(e){ console.error('Failed to create shared cert', e); }
+            });
+          })
+          .catch(err => { console.info('No shared certificates loaded:', err.message); });
     })();
 
     // load saved certificates from localStorage
@@ -795,6 +932,23 @@ document.addEventListener('DOMContentLoaded', () => {
       saved.forEach(s => { try{ createThumb(s.data, s.name, true); }catch(e){ console.error('Restore failed', e); } });
       updateDevUI();
     })();
+
+      // Ensure static thumbnails (pre-rendered in certificates.html) open the overlay
+      try{
+        const staticThumbs = gallery.querySelectorAll('img.cert-thumb');
+        staticThumbs.forEach(img => {
+          if (img.dataset.listenerAttached) return;
+          img.style.cursor = 'pointer';
+          img.setAttribute('tabindex', img.getAttribute('tabindex') || '0');
+          img.addEventListener('click', ()=>{
+            const src = img.currentSrc || img.src;
+            const caption = img.alt || img.closest('.cert-item')?.querySelector('.caption')?.textContent || '';
+            openOverlay(src, caption);
+          });
+          img.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const src = img.currentSrc || img.src; const caption = img.alt || img.closest('.cert-item')?.querySelector('.caption')?.textContent || ''; openOverlay(src, caption); } });
+          img.dataset.listenerAttached = '1';
+        });
+      }catch(e){ console.error('Failed to attach handlers to static cert thumbnails', e); }
   })();
 });
 
