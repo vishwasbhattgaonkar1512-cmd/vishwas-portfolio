@@ -460,11 +460,24 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.className = 'view-certs-trigger';
         btn.textContent = 'View Certificates';
 
+        function showAccessInfo(){
+          // display password below the gallery for convenience
+          if (panel.querySelector('.cert-access-info')) return;
+          const info = document.createElement('div'); info.className = 'cert-access-info';
+          info.style.marginTop = '10px'; info.style.fontSize = '12px'; info.style.color = 'var(--muted)';
+          info.textContent = 'Access password: ' + ACCESS_PASSWORD;
+          // insert after gallery
+          gallery.parentNode.insertBefore(info, gallery.nextSibling);
+        }
+
         btn.addEventListener('click', ()=>{
           if (isLocalhost()){
             sessionStorage.setItem('portfolio.certs.access','granted');
             gallery.classList.remove('certs-hidden');
             gallery.classList.add('certs-visible');
+            // remove placeholder and show password info
+            try{ placeholder.remove(); }catch(e){}
+            showAccessInfo();
             // focus gallery for discoverability
             gallery.scrollIntoView({behavior:'smooth', block:'start'});
             return;
@@ -475,6 +488,8 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('portfolio.certs.access','granted');
             gallery.classList.remove('certs-hidden');
             gallery.classList.add('certs-visible');
+            try{ placeholder.remove(); }catch(e){}
+            showAccessInfo();
             gallery.scrollIntoView({behavior:'smooth', block:'start'});
           } else {
             alert('Incorrect password.');
@@ -488,6 +503,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // already allowed (localhost or set in session)
       gallery.classList.add('certs-visible');
+      // reveal password info as well
+      (function(){
+        if (!panel.querySelector('.cert-access-info')){
+          const info = document.createElement('div'); info.className = 'cert-access-info';
+          info.style.marginTop = '10px'; info.style.fontSize = '12px'; info.style.color = 'var(--muted)';
+          info.textContent = 'Access password: ' + ACCESS_PASSWORD;
+          gallery.parentNode.insertBefore(info, gallery.nextSibling);
+        }
+      })();
     }
   })();
 
