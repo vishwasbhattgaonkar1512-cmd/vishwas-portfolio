@@ -419,6 +419,78 @@ document.addEventListener('DOMContentLoaded', () => {
   // Lightweight hover depth handled in CSS for profile image
 
   // Certifications gallery: lightbox/preview
+  // Client-side access control for Certificates (add-on only)
+  (function certsAccessControl(){
+    const panel = document.getElementById('tab-certifications');
+    if (!panel) return;
+    const gallery = panel.querySelector('.cert-gallery');
+    if (!gallery) return;
+
+    // Simple configuration (changeable): access password for non-localhost
+    const ACCESS_PASSWORD = 'ViewCerts@2026';
+
+    function isLocalhost(){
+      const h = location.hostname;
+      return h === 'localhost' || h === '127.0.0.1';
+    }
+
+    function hasAccess(){
+      return isLocalhost() || sessionStorage.getItem('portfolio.certs.access') === 'granted';
+    }
+
+    // Inject small, scoped CSS for smooth fade/slide reveal
+    const _s = document.createElement('style');
+    _s.textContent = `#tab-certifications .cert-locked-placeholder{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);margin-bottom:12px}#tab-certifications .certs-hidden{opacity:0;max-height:0;transform:translateY(-8px);overflow:hidden;transition:opacity .36s ease,max-height .45s ease,transform .36s ease}#tab-certifications .certs-visible{opacity:1;max-height:2000px;transform:translateY(0);transition:opacity .36s ease,max-height .45s ease,transform .36s ease}#tab-certifications .view-certs-trigger{padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit;cursor:pointer}`;
+    document.head.appendChild(_s);
+
+    // If access not granted, hide the gallery and add a trigger
+    if (!hasAccess()){
+      gallery.classList.add('certs-hidden');
+
+      // create placeholder + trigger only once
+      if (!panel.querySelector('.cert-locked-placeholder')){
+        const placeholder = document.createElement('div');
+        placeholder.className = 'cert-locked-placeholder';
+
+        const info = document.createElement('div');
+        info.textContent = 'Certificates are private — authorized access required.';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'view-certs-trigger';
+        btn.textContent = 'View Certificates';
+
+        btn.addEventListener('click', ()=>{
+          if (isLocalhost()){
+            sessionStorage.setItem('portfolio.certs.access','granted');
+            gallery.classList.remove('certs-hidden');
+            gallery.classList.add('certs-visible');
+            // focus gallery for discoverability
+            gallery.scrollIntoView({behavior:'smooth', block:'start'});
+            return;
+          }
+          const attempt = prompt('Enter access password to view certificates:');
+          if (attempt === null) return; // cancelled
+          if (attempt === ACCESS_PASSWORD){
+            sessionStorage.setItem('portfolio.certs.access','granted');
+            gallery.classList.remove('certs-hidden');
+            gallery.classList.add('certs-visible');
+            gallery.scrollIntoView({behavior:'smooth', block:'start'});
+          } else {
+            alert('Incorrect password.');
+          }
+        });
+
+        placeholder.appendChild(info);
+        placeholder.appendChild(btn);
+        gallery.parentNode.insertBefore(placeholder, gallery);
+      }
+    } else {
+      // already allowed (localhost or set in session)
+      gallery.classList.add('certs-visible');
+    }
+  })();
+
   (function setupCertGallery(){
     const panel = document.getElementById('tab-certifications');
     if (!panel) return;
